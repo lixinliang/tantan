@@ -1,4 +1,6 @@
 <script>
+
+// cssText helper
 function css ( obj ) {
     return Object.keys(obj).map(( key ) => {
         const value = obj[key];
@@ -6,32 +8,49 @@ function css ( obj ) {
     }).join(';');
 }
 
+// css value function helper
 css.fn = function ( name, args ) {
     return `${ name }(${ args.join(',') })`;
 };
 
+// slice to array
+function slice ( object ) {
+    return [].slice.call(object);
+}
+
 export default {
     props: {
+        // transition duration of slide back
         bounceSpeed: {
             type: Number,
             default: 250,
         },
+        // transition timing function of slide back
         bounceTimingFunction: {
             type: String,
             default: css.fn('cubic-bezier', [0, 0, 0.59, 1.12]),
         },
+        // transition duration of slide out
         escapeSpeed: {
             type: Number,
             default: 300,
         },
+        // transition timing function of slide out
         escapeTimingFunction: {
             type: String,
             default: css.fn('cubic-bezier', [0, 0, 0.59, 1.12]),
         },
+        // threshold of slide out
         escapeThreshold: {
             type: Number,
             default: 60,
         },
+        // disable touch
+        disable: {
+            type: Boolean,
+            default: false,
+        },
+        // card pack list
         list: {
             type: Array,
             default: [],
@@ -57,12 +76,15 @@ export default {
             progress: 0,
         };
     },
-    created () {
-    },
+    created () {},
     methods: {
+        // =prevpoint
+        // =startpoint
+        // =originpoint
+        // setProgress()
         start ( event, el ) {
             const { targetTouches } = event;
-            const [ touch ] = targetTouches;
+            const [ touch ] = slice(targetTouches);
             this.originpoint = {
                 x: 0,
                 y: 0,
@@ -80,20 +102,35 @@ export default {
             }
             this.setProgress();
         },
+        // =prevpoint
+        // setProgress()
+        // @transform => design draging animation
         move ( event, el ) {
             const { targetTouches } = event;
-            const [ touch ] = targetTouches;
+            const [ touch ] = slice(targetTouches);
             const { x: ox, y: oy } = this.originpoint;
             const { clientX: sx, clientY: sy } = this.startpoint;
             const { clientX: px, clientY: py } = this.prevpoint;
             const { clientX: nx, clientY: ny } = touch;
-            el.style.cssText = css({
-                'transform': css.fn('matrix', [1, 0, 0, 1, nx - sx - ox, ny - sy - oy]),
-            });
+            let defaults = [1, 0, 0, 1, nx - sx - ox, ny - sy - oy];
             this.prevpoint = touch;
             this.setProgress();
+            const { progress } = this;
+            this.$emit('transform', {
+                el,
+                event,
+                progress,
+                matrix ( fn ) {
+                    defaults = fn.call(null, defaults.slice()) || defaults;
+                },
+            });
+            el.style.cssText = css({
+                'transform': css.fn('matrix', defaults),
+            });
         },
+        // @transform => design slide back and slide out animation
         end ( event, el ) {
+            const { progress } = this;
             const { x: ox, y: oy } = this.originpoint;
             const { clientX: sx, clientY: sy } = this.startpoint;
             const { clientX: px, clientY: py } = this.prevpoint;
@@ -101,14 +138,10 @@ export default {
             let duration;
             let translateX;
             let pointerEvents;
-            if (Math.abs(this.progress) >= 1) {
+            if (Math.abs(progress) >= 1) {
                 duration = this.escapeSpeed;
                 bezier = this.bounceTimingFunction;
-                if (this.progress > 0) {
-                    translateX = window.innerWidth
-                } else {
-                    translateX = window.innerWidth * -1;
-                }
+                translateX = window.innerWidth * ((+(progress >= 0)) * 2 - 1)
                 pointerEvents = 'none;'
             } else {
                 translateX = 0;
@@ -116,24 +149,42 @@ export default {
                 bezier = this.escapeTimingFunction;
                 pointerEvents = 'auto';
             }
+            let matrix = [1, 0, 0, 1, translateX, 0];
+            this.$emit('transform', {
+                el,
+                event,
+                progress,
+                matrix ( fn ) {
+                    matrix = fn.call(null, matrix.slice()) || matrix;
+                },
+            });
             el.style.cssText = css({
-                'transform': css.fn('matrix', [1, 0, 0, 1, translateX, 0]),
+                'transform': css.fn('matrix', matrix),
                 'transition': `transform ${ duration }ms ${ bezier }`,
                 'pointer-events': pointerEvents,
             });
             this.startpoint = null;
             this.prevpoint = null;
         },
+        // =progress
         setProgress () {
             const { x: ox, y: oy } = this.originpoint;
             const { clientX: sx, clientY: sy } = this.startpoint;
             const { clientX: px, clientY: py } = this.prevpoint;
             this.progress = (px - sx - ox) / this.escapeThreshold;
         },
+        // @drag
         drag ( event, el ) {
             const { progress } = this;
             this.$emit('drag', { event, el, progress });
         },
+        // @drop
+        // @slideback
+        // @slideleft
+        // @slideright
+        // @slidebackend
+        // @slideleftend
+        // @sliderightend
         drop ( event, el ) {
             let type;
             const { progress } = this;
@@ -159,31 +210,59 @@ export default {
             };
             once(type);
         },
+        // start()
+        // @touchstart
+        // drag()
         touchstart ( event, index ) {
+            if (this.disable) {
+                return;
+            }
             const el = this.$refs.items[index];
             this.start(event, el);
             this.$emit('touchstart', { event, el });
             this.drag(event, el);
         },
+        // move()
+        // @touchmove
+        // drag()
         touchmove ( event, index ) {
+            if (this.disable) {
+                return;
+            }
             const el = this.$refs.items[index];
             this.move(event, el);
             this.$emit('touchmove', { event, el });
             this.drag(event, el);
         },
+        // end()
+        // @touchend
+        // drop()
         touchend ( event, index ) {
+            if (this.disable) {
+                return;
+            }
             const el = this.$refs.items[index];
             this.end(event, el);
             this.$emit('touchend', { event, el });
             this.drop(event, el);
         },
+        // end()
+        // @touchcancel
+        // drop()
         touchcancel ( event, index ) {
+            if (this.disable) {
+                return;
+            }
             const el = this.$refs.items[index];
             this.end(event, el);
             this.$emit('touchcancel', { event, el });
             this.drop(event, el);
         },
+        // @tantan:transitionend
         transitionend ( event, index ) {
+            if (this.disable) {
+                return;
+            }
             const el = this.$refs.items[index];
             this.$emit('tantan:transitionend', el);
         },
@@ -197,11 +276,12 @@ export default {
             ref="items"
             v-for="(item, index) in data"
             @touchstart="touchstart($event, index)"
-            @touchmove="touchmove($event, index)"
+            @touchmove.prevent="touchmove($event, index)"
             @touchend="touchend($event, index)"
             @touchcancel="touchcancel($event, index)"
             @transitionend.self="transitionend($event, index)"
         >
+            <!-- export item and index -->
             <slot name="card"
                 :item="item"
                 :index="length - index - 1"
