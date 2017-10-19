@@ -45,7 +45,9 @@ or
 
 * `Border`: Now is using `0.5px` to simulate. However, browser could not render the rounded corner when it is transitioning or what else. There is a better way like using `background-image` or `canvas` as you like.
 
-* `The draging effect`: That's a rotation effect in App, when you are draging the card.
+* <del>`The draging effect`: That's a rotation effect in App, when you are draging the card.<del>
+
+* `Slide out inertia`: There is an inertia when slide out a card.
 
 * `Card pack sync animation`: The card pack under the first card has a translating effect in App, when you are draging the first card.
 
