@@ -23,7 +23,7 @@ export default {
         // transition duration of slide back
         bounceSpeed: {
             type: Number,
-            default: 250,
+            default: 2500,
         },
         // transition timing function of slide back
         bounceTimingFunction: {
@@ -33,7 +33,7 @@ export default {
         // transition duration of slide out
         escapeSpeed: {
             type: Number,
-            default: 300,
+            default: 3000,
         },
         // transition timing function of slide out
         escapeTimingFunction: {
@@ -45,8 +45,8 @@ export default {
             type: Number,
             default: 60,
         },
-        // disable touch
-        disable: {
+        // disable touch event
+        disabled: {
             type: Boolean,
             default: false,
         },
@@ -214,7 +214,7 @@ export default {
         // @touchstart
         // drag()
         touchstart ( event, index ) {
-            if (this.disable) {
+            if (this.disabled) {
                 return;
             }
             const el = this.$refs.items[index];
@@ -226,7 +226,7 @@ export default {
         // @touchmove
         // drag()
         touchmove ( event, index ) {
-            if (this.disable) {
+            if (this.disabled) {
                 return;
             }
             const el = this.$refs.items[index];
@@ -238,7 +238,7 @@ export default {
         // @touchend
         // drop()
         touchend ( event, index ) {
-            if (this.disable) {
+            if (this.disabled) {
                 return;
             }
             const el = this.$refs.items[index];
@@ -250,7 +250,7 @@ export default {
         // @touchcancel
         // drop()
         touchcancel ( event, index ) {
-            if (this.disable) {
+            if (this.disabled) {
                 return;
             }
             const el = this.$refs.items[index];
@@ -260,7 +260,7 @@ export default {
         },
         // @tantan:transitionend
         transitionend ( event, index ) {
-            if (this.disable) {
+            if (this.disabled) {
                 return;
             }
             const el = this.$refs.items[index];
