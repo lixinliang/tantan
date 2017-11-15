@@ -1,5 +1,5 @@
 <script>
-import tantan from './components/tantan';
+import tantan from '../../tantan';
 
 const nextTick = () => new Promise(( resolve ) => process.nextTick(resolve));
 
