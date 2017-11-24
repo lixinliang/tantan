@@ -23,7 +23,7 @@ export default {
         // transition duration of slide back
         bounceSpeed: {
             type: Number,
-            default: 2500,
+            default: 250,
         },
         // transition timing function of slide back
         bounceTimingFunction: {
@@ -33,7 +33,7 @@ export default {
         // transition duration of slide out
         escapeSpeed: {
             type: Number,
-            default: 3000,
+            default: 300,
         },
         // transition timing function of slide out
         escapeTimingFunction: {
@@ -76,12 +76,110 @@ export default {
             progress: 0,
         };
     },
-    created () {},
+    created () {
+        this.$on('tantan:slideleft', () => {
+            const { progress } = this;
+            const duration = this.escapeSpeed;
+            const bezier = this.escapeTimingFunction;
+            const pointerEvents = 'none';
+            const { items } = this.$refs;
+            const el = items[items.length - 1];
+            this.$emit('slideleft');
+            let matrix = [1, 0, 0, 1, -window.innerWidth, 0];
+            this.$emit('transform', {
+                el,
+                progress,
+                matrix ( fn ) {
+                    matrix = fn.call(null, matrix.slice()) || matrix;
+                },
+            });
+            el.style.cssText = css({
+                'transform': css.fn('matrix', matrix),
+                'transition': `transform ${ duration }ms ${ bezier }`,
+                'pointer-events': pointerEvents,
+            });
+            const once = () => {
+                this.$once('tantan:transitionend', ( $el ) => {
+                    if (el === $el) {
+                        this.$emit('slideleftend');
+                    } else {
+                        once();
+                    }
+                });
+            };
+            once();
+        });
+        this.$on('tantan:slideright', () => {
+            const { progress } = this;
+            const duration = this.escapeSpeed;
+            const bezier = this.escapeTimingFunction;
+            const pointerEvents = 'none';
+            const { items } = this.$refs;
+            const el = items[items.length - 1];
+            this.$emit('slideright');
+            let matrix = [1, 0, 0, 1, window.innerWidth, 0];
+            this.$emit('transform', {
+                el,
+                progress,
+                matrix ( fn ) {
+                    matrix = fn.call(null, matrix.slice()) || matrix;
+                },
+            });
+            el.style.cssText = css({
+                'transform': css.fn('matrix', matrix),
+                'transition': `transform ${ duration }ms ${ bezier }`,
+                'pointer-events': pointerEvents,
+            });
+            const once = () => {
+                this.$once('tantan:transitionend', ( $el ) => {
+                    if (el === $el) {
+                        this.$emit('sliderightend');
+                    } else {
+                        once();
+                    }
+                });
+            };
+            once();
+        });
+        this.$on('tantan:slideback', () => {
+            const { progress } = this;
+            const duration = this.bounceSpeed;
+            const bezier = this.bounceTimingFunction;
+            const pointerEvents = 'auto';
+            const { items } = this.$refs;
+            const el = items[items.length - 1];
+            this.$emit('slideback');
+            let matrix = [1, 0, 0, 1, 0, 0];
+            this.$emit('transform', {
+                el,
+                progress,
+                matrix ( fn ) {
+                    matrix = fn.call(null, matrix.slice()) || matrix;
+                },
+            });
+            el.style.cssText = css({
+                'transform': css.fn('matrix', matrix),
+                'transition': `transform ${ duration }ms ${ bezier }`,
+                'pointer-events': pointerEvents,
+            });
+            const once = () => {
+                this.$once('tantan:transitionend', ( $el ) => {
+                    if (el === $el) {
+                        this.$emit('slidebackend');
+                    } else {
+                        once();
+                    }
+                });
+            };
+            once();
+        });
+    },
     methods: {
         // =prevpoint
         // =startpoint
         // =originpoint
         // setProgress()
+        // @transform => pass the progress value
         start ( event, el ) {
             const { targetTouches } = event;
             const [ touch ] = slice(targetTouches);
@@ -101,6 +199,12 @@ export default {
                 this.originpoint.y = -f;
             }
             this.setProgress();
+            const { progress } = this;
+            this.$emit('transform', {
+                el,
+                progress,
+                matrix () {},
+            });
         },
         // =prevpoint
         // setProgress()
@@ -118,7 +222,6 @@ export default {
             const { progress } = this;
             this.$emit('transform', {
                 el,
-                event,
                 progress,
                 matrix ( fn ) {
                     defaults = fn.call(null, defaults.slice()) || defaults;
@@ -127,44 +230,6 @@ export default {
             el.style.cssText = css({
                 'transform': css.fn('matrix', defaults),
             });
-        },
-        // @transform => design slide back and slide out animation
-        end ( event, el ) {
-            const { progress } = this;
-            const { x: ox, y: oy } = this.originpoint;
-            const { clientX: sx, clientY: sy } = this.startpoint;
-            const { clientX: px, clientY: py } = this.prevpoint;
-            let bezier;
-            let duration;
-            let translateX;
-            let pointerEvents;
-            if (Math.abs(progress) >= 1) {
-                duration = this.escapeSpeed;
-                bezier = this.bounceTimingFunction;
-                translateX = window.innerWidth * ((+(progress >= 0)) * 2 - 1)
-                pointerEvents = 'none;'
-            } else {
-                translateX = 0;
-                duration = this.bounceSpeed;
-                bezier = this.escapeTimingFunction;
-                pointerEvents = 'auto';
-            }
-            let matrix = [1, 0, 0, 1, translateX, 0];
-            this.$emit('transform', {
-                el,
-                event,
-                progress,
-                matrix ( fn ) {
-                    matrix = fn.call(null, matrix.slice()) || matrix;
-                },
-            });
-            el.style.cssText = css({
-                'transform': css.fn('matrix', matrix),
-                'transition': `transform ${ duration }ms ${ bezier }`,
-                'pointer-events': pointerEvents,
-            });
-            this.startpoint = null;
-            this.prevpoint = null;
         },
         // =progress
         setProgress () {
@@ -179,36 +244,23 @@ export default {
             this.$emit('drag', { event, el, progress });
         },
         // @drop
-        // @slideback
-        // @slideleft
-        // @slideright
-        // @slidebackend
-        // @slideleftend
-        // @sliderightend
+        // @tantan:slideback
+        // @tantan:slideleft
+        // @tantan:slideright
         drop ( event, el ) {
-            let type;
+            this.startpoint = null;
+            this.prevpoint = null;
             const { progress } = this;
             this.$emit('drop', { event, el, progress });
             if (Math.abs(progress) < 1) {
-                type = 'slideback';
+                this.$emit('tantan:slideback');
             } else {
                 if (progress < 0) {
-                    type = 'slideleft';
+                    this.$emit('tantan:slideleft');
                 } else {
-                    type = 'slideright';
+                    this.$emit('tantan:slideright');
                 }
             }
-            this.$emit(type, { event, el });
-            let once = ( type ) => {
-                this.$once('tantan:transitionend', ( $el ) => {
-                    if (el === $el) {
-                        this.$emit(`${ type }end`, { event, el });
-                    } else {
-                        once(type);
-                    }
-                });
-            };
-            once(type);
         },
         // start()
         // @touchstart
@@ -242,7 +294,6 @@ export default {
                 return;
             }
             const el = this.$refs.items[index];
-            this.end(event, el);
             this.$emit('touchend', { event, el });
             this.drop(event, el);
         },
@@ -254,15 +305,11 @@ export default {
                 return;
             }
             const el = this.$refs.items[index];
-            this.end(event, el);
             this.$emit('touchcancel', { event, el });
             this.drop(event, el);
         },
         // @tantan:transitionend
         transitionend ( event, index ) {
-            if (this.disabled) {
-                return;
-            }
             const el = this.$refs.items[index];
             this.$emit('tantan:transitionend', el);
         },
